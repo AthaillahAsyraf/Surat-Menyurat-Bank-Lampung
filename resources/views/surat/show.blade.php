@@ -11,6 +11,12 @@
                     <h5 class="mb-0"><i class="bi bi-envelope-open"></i> Detail Surat</h5>
                 </div>
                 <div class="card-body">
+                    @if($surat->isPrivateReply())
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-lock"></i> Ini adalah surat balasan private. Hanya dapat dilihat oleh pengirim dan penerima.
+                    </div>
+                    @endif
+                    
                     <table class="table table-borderless">
                         <tr>
                             <td width="20%"><strong>Nomor Surat</strong></td>
@@ -42,6 +48,18 @@
                                 @endif
                             </td>
                         </tr>
+                        <tr>
+    <td><strong>Sifat Surat</strong></td>
+    <td>: 
+        @if($surat->sifat_surat == 'biasa')
+            <span class="badge bg-success">Biasa</span>
+        @elseif($surat->sifat_surat == 'rahasia')
+            <span class="badge bg-warning">Rahasia</span>
+        @elseif($surat->sifat_surat == 'sangat_rahasia')
+            <span class="badge bg-danger">Sangat Rahasia</span>
+        @endif
+    </td>
+</tr>
                         @if($surat->file_lampiran)
                         <tr>
                             <td><strong>Lampiran</strong></td>
@@ -65,6 +83,18 @@
                         <a href="{{ url()->previous() }}" class="btn btn-secondary">
                             <i class="bi bi-arrow-left"></i> Kembali
                         </a>
+                        
+                        @if($surat->pengirim_id != auth()->user()->kantor_cabang_id && !$surat->isPrivateReply())
+                        <a href="{{ route('surat.reply', $surat->id) }}" class="btn btn-primary">
+                            <i class="bi bi-reply"></i> Balas Surat
+                        </a>
+                        @endif
+                        
+                        @if($surat->isReply() || $surat->hasReplies())
+                        <a href="{{ route('surat.thread', $surat->id) }}" class="btn btn-info">
+                            <i class="bi bi-chat-dots"></i> Lihat Thread ({{ $surat->getRepliesCount() + 1 }})
+                        </a>
+                        @endif
                     </div>
                 </div>
             </div>

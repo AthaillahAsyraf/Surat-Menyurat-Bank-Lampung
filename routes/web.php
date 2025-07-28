@@ -24,4 +24,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/surat', [SuratController::class, 'store'])->name('surat.store');
     Route::get('/surat/{id}', [SuratController::class, 'show'])->name('surat.show');
     Route::get('/surat/{id}/download', [SuratController::class, 'download'])->name('surat.download');
+
+    Route::get('/surat/{id}/reply', [SuratController::class, 'reply'])->name('surat.reply');
+    Route::post('/surat/{id}/reply', [SuratController::class, 'storeReply'])->name('surat.storeReply');
+    Route::get('/surat/{id}/thread', [SuratController::class, 'showThread'])->name('surat.thread');
+
+    
 });

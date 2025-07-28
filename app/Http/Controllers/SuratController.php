@@ -12,34 +12,144 @@ use Illuminate\Support\Facades\DB;
 
 class SuratController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         $kantorId = $user->kantor_cabang_id;
         
-        $suratMasuk = Surat::with('pengirim')
-            ->whereHas('penerimas', function($q) use ($kantorId) {
-                $q->where('kantor_cabang_id', $kantorId);
-            })
-            ->latest()
-            ->paginate(20);
+        $query = Surat::with('pengirim')
+            ->where(function($q) use ($kantorId) {
+                // Surat biasa yang ditujukan ke kantor ini
+                $q->whereHas('penerimas', function($penerima) use ($kantorId) {
+                    $penerima->where('kantor_cabang_id', $kantorId);
+                })
+                // ATAU surat balasan yang parent-nya dari kantor ini
+                ->orWhere(function($balasan) use ($kantorId) {
+                    $balasan->whereNotNull('parent_id')
+                          ->whereHas('parent', function($parent) use ($kantorId) {
+                              $parent->where('pengirim_id', $kantorId);
+                          });
+                });
+            });
 
-        return view('surat.index', compact('suratMasuk'));
-    }
+        // Filter berdasarkan jenis surat
+        if ($request->filled('jenis_surat')) {
+            $query->where('jenis_surat', $request->jenis_surat);
+        }
 
-    public function suratKeluar()
-    {
-        $user = auth()->user();
-        $kantorId = $user->kantor_cabang_id;
+        // Filter berdasarkan sifat surat
+        if ($request->filled('sifat_surat')) {
+            $query->where('sifat_surat', $request->sifat_surat);
+        }
+
+        // Filter berdasarkan status baca
+        if ($request->filled('status')) {
+            if ($request->status == 'belum_dibaca') {
+                $query->whereDoesntHave('reads', function($q) use ($kantorId) {
+                    $q->where('kantor_cabang_id', $kantorId);
+                });
+            } elseif ($request->status == 'sudah_dibaca') {
+                $query->whereHas('reads', function($q) use ($kantorId) {
+                    $q->where('kantor_cabang_id', $kantorId);
+                });
+            }
+        }
+
+        // Filter berdasarkan pengirim
+        if ($request->filled('pengirim_id')) {
+            $query->where('pengirim_id', $request->pengirim_id);
+        }
+
+        // Filter berdasarkan tanggal
+        if ($request->filled('tanggal_dari')) {
+            $query->whereDate('created_at', '>=', $request->tanggal_dari);
+        }
+        if ($request->filled('tanggal_sampai')) {
+            $query->whereDate('created_at', '<=', $request->tanggal_sampai);
+        }
+
+        // Pencarian berdasarkan perihal atau nomor surat
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('perihal', 'like', '%' . $request->search . '%')
+                  ->orWhere('nomor_surat', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $suratMasuk = $query->latest()->paginate(10)->withQueryString();
         
-        $suratKeluar = Surat::with(['reads.kantorCabang', 'penerimas.kantorCabang'])
-            ->where('pengirim_id', $kantorId)
-            ->latest()
-            ->paginate(20);
+        // Get list pengirim untuk dropdown filter
+        $pengirimList = KantorCabang::where('id', '!=', $kantorId)
+            ->orderBy('nama_kantor')
+            ->get();
 
-        return view('surat.keluar', compact('suratKeluar'));
+        return view('surat.index', compact('suratMasuk', 'pengirimList'));
     }
 
+    public function suratKeluar(Request $request)
+{
+    $user = auth()->user();
+    $kantorId = $user->kantor_cabang_id;
+    
+    $query = Surat::with(['reads.kantorCabang', 'penerimas.kantorCabang'])
+        ->where('pengirim_id', $kantorId);
+
+    // Filter berdasarkan jenis surat
+    if ($request->filled('jenis_surat')) {
+        $query->where('jenis_surat', $request->jenis_surat);
+    }
+
+    // Filter berdasarkan sifat surat
+    if ($request->filled('sifat_surat')) {
+        $query->where('sifat_surat', $request->sifat_surat);
+    }
+
+    // Filter berdasarkan status pembacaan
+    if ($request->filled('status')) {
+        if ($request->status == 'semua_dibaca') {
+            $query->whereHas('penerimas', function($q) {
+                $q->whereRaw('(SELECT COUNT(*) FROM surat_reads WHERE surat_reads.surat_id = surats.id) = (SELECT COUNT(*) FROM surat_penerimas WHERE surat_penerimas.surat_id = surats.id)');
+            });
+        } elseif ($request->status == 'sebagian_dibaca') {
+            $query->whereHas('reads')
+                  ->whereRaw('(SELECT COUNT(*) FROM surat_reads WHERE surat_reads.surat_id = surats.id) < (SELECT COUNT(*) FROM surat_penerimas WHERE surat_penerimas.surat_id = surats.id)');
+        } elseif ($request->status == 'belum_dibaca') {
+            $query->doesntHave('reads');
+        }
+    }
+
+    // Filter berdasarkan penerima
+    if ($request->filled('penerima_id')) {
+        $query->whereHas('penerimas', function($q) use ($request) {
+            $q->where('kantor_cabang_id', $request->penerima_id);
+        });
+    }
+
+    // Filter berdasarkan tanggal
+    if ($request->filled('tanggal_dari')) {
+        $query->whereDate('created_at', '>=', $request->tanggal_dari);
+    }
+    if ($request->filled('tanggal_sampai')) {
+        $query->whereDate('created_at', '<=', $request->tanggal_sampai);
+    }
+
+    // Pencarian berdasarkan perihal atau nomor surat
+    if ($request->filled('search')) {
+        $query->where(function($q) use ($request) {
+            $q->where('perihal', 'like', '%' . $request->search . '%')
+              ->orWhere('nomor_surat', 'like', '%' . $request->search . '%');
+        });
+    }
+
+    $suratKeluar = $query->latest()->paginate(10)->withQueryString();
+    
+    // Get list penerima untuk dropdown filter
+    $penerimaList = KantorCabang::where('id', '!=', $kantorId)
+        ->orderBy('nama_kantor')
+        ->get();
+
+    return view('surat.keluar', compact('suratKeluar', 'penerimaList'));
+}
     public function create()
     {
         $kantorCabangs = KantorCabang::where('id', '!=', auth()->user()->kantor_cabang_id)
@@ -51,14 +161,22 @@ class SuratController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        // Custom validation rules
+        $rules = [
             'perihal' => 'required|string|max:255',
             'isi_surat' => 'required|string',
             'jenis_surat' => 'required|in:informasi,pertanyaan,permintaan,lainnya',
-            'file_lampiran' => 'nullable|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar',
-            'penerima' => 'required|array|min:1',
-            'penerima.*' => 'exists:kantor_cabangs,id'
-        ]);
+            'sifat_surat' => 'required|in:biasa,rahasia,sangat_rahasia', 
+            'file_lampiran' => 'nullable|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar'
+        ];
+        
+        // Tambah validasi penerima hanya jika tidak kirim ke semua
+        if (!$request->has('kirim_semua') || !$request->kirim_semua) {
+            $rules['penerima'] = 'required|array|min:1';
+            $rules['penerima.*'] = 'exists:kantor_cabangs,id';
+        }
+        
+        $request->validate($rules);
 
         DB::beginTransaction();
         try {
@@ -113,8 +231,18 @@ class SuratController extends Controller
         
         // Cek apakah user berhak melihat surat ini
         $kantorId = auth()->user()->kantor_cabang_id;
-        if ($surat->pengirim_id != $kantorId && !$surat->isForKantor($kantorId)) {
-            abort(403, 'Anda tidak berhak melihat surat ini.');
+        
+        // Jika ini surat balasan, hanya pengirim balasan dan penerima asli yang bisa lihat
+        if ($surat->isPrivateReply()) {
+            $originalSender = $surat->getOriginalRecipient();
+            if ($surat->pengirim_id != $kantorId && $originalSender != $kantorId) {
+                abort(403, 'Anda tidak berhak melihat surat balasan ini.');
+            }
+        } else {
+            // Surat biasa
+            if ($surat->pengirim_id != $kantorId && !$surat->isForKantor($kantorId)) {
+                abort(403, 'Anda tidak berhak melihat surat ini.');
+            }
         }
         
         // Tandai sebagai sudah dibaca jika bukan pengirim
@@ -150,6 +278,101 @@ class SuratController extends Controller
         }
 
         return Storage::disk('public')->download($surat->file_lampiran);
+    }
+
+    public function reply($id)
+    {
+        $suratAsli = Surat::with(['pengirim', 'penerimas'])->findOrFail($id);
+        
+        // Cek apakah user berhak membalas surat ini
+        $kantorId = auth()->user()->kantor_cabang_id;
+        if (!$suratAsli->isForKantor($kantorId)) {
+            abort(403, 'Anda tidak berhak membalas surat ini.');
+        }
+        
+        return view('surat.reply', compact('suratAsli'));
+    }
+
+    public function storeReply(Request $request, $id)
+    {
+        $suratAsli = Surat::findOrFail($id);
+        
+        // Validasi hak akses
+        $kantorId = auth()->user()->kantor_cabang_id;
+        if (!$suratAsli->isForKantor($kantorId)) {
+            abort(403, 'Anda tidak berhak membalas surat ini.');
+        }
+        
+        $request->validate([
+            'perihal' => 'required|string|max:255',
+            'isi_surat' => 'required|string',
+            'jenis_surat' => 'required|in:informasi,pertanyaan,permintaan,lainnya',
+            'sifat_surat' => 'required|in:biasa,rahasia,sangat_rahasia', 
+            'file_lampiran' => 'nullable|file|max:10240|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar'
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $data = [
+                'parent_id' => $suratAsli->id,
+                'nomor_surat' => $this->generateNomorSurat(),
+                'perihal' => $request->perihal,
+                'isi_surat' => $request->isi_surat,
+                'jenis_surat' => $request->jenis_surat,
+                'sifat_surat' => $request->sifat_surat,
+                'pengirim_id' => $kantorId,
+                'status' => 'terkirim'
+            ];
+
+            if ($request->hasFile('file_lampiran')) {
+                $file = $request->file('file_lampiran');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('lampiran', $filename, 'public');
+                $data['file_lampiran'] = $path;
+            }
+
+            $balasan = Surat::create($data);
+
+            // Kirim balasan HANYA ke pengirim asli
+            SuratPenerima::create([
+                'surat_id' => $balasan->id,
+                'kantor_cabang_id' => $suratAsli->pengirim_id
+            ]);
+
+            DB::commit();
+            
+            return redirect()->route('surat.show', $balasan->id)
+                ->with('success', 'Balasan surat berhasil dikirim!');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->with('error', 'Gagal mengirim balasan. Silakan coba lagi.');
+        }
+    }
+
+    public function showThread($id)
+    {
+        $surat = Surat::with(['pengirim', 'penerimas.kantorCabang', 'parent', 'replies.pengirim'])->findOrFail($id);
+        
+        // Cek hak akses
+        $kantorId = auth()->user()->kantor_cabang_id;
+        if ($surat->pengirim_id != $kantorId && !$surat->isForKantor($kantorId)) {
+            abort(403, 'Anda tidak berhak melihat surat ini.');
+        }
+        
+        // Get all thread (parent and all replies)
+        if ($surat->parent_id) {
+            // If this is a reply, get the parent
+            $threadParent = $surat->parent;
+        } else {
+            // This is already the parent
+            $threadParent = $surat;
+        }
+        
+        // Get all messages in thread
+        $thread = collect([$threadParent])->merge($threadParent->replies()->with('pengirim')->get());
+        
+        return view('surat.thread', compact('thread', 'surat'));
     }
 
     private function generateNomorSurat()

@@ -51,13 +51,33 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
+
+                        <div class="mb-3">
+    <label for="sifat_surat" class="form-label">Sifat Surat <span class="text-danger">*</span></label>
+    <select class="form-select @error('sifat_surat') is-invalid @enderror" 
+            id="sifat_surat" name="sifat_surat" required>
+        <option value="">-- Pilih Sifat Surat --</option>
+        <option value="biasa" {{ old('sifat_surat') == 'biasa' ? 'selected' : '' }}>
+            Biasa
+        </option>
+        <option value="rahasia" {{ old('sifat_surat') == 'rahasia' ? 'selected' : '' }}>
+            Rahasia
+        </option>
+        <option value="sangat_rahasia" {{ old('sifat_surat') == 'sangat_rahasia' ? 'selected' : '' }}>
+            Sangat Rahasia
+        </option>
+    </select>
+    @error('sifat_surat')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
                         
                         <div class="mb-3">
                             <label class="form-label">Tujuan Surat <span class="text-danger">*</span></label>
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" id="kirim_semua" name="kirim_semua" value="1">
                                 <label class="form-check-label" for="kirim_semua">
-                                    <strong>Kirim ke Semua Kantor Cabang (42 kantor)</strong>
+                                    <strong>Kirim ke Semua Kantor Cabang (39 kantor)</strong>
                                 </label>
                             </div>
                             
@@ -154,19 +174,21 @@ $(document).ready(function() {
         if($(this).is(':checked')) {
             $('#pilih-kantor').hide();
             $('#penerima').prop('required', false);
+            $('#penerima').val(null).trigger('change'); // Clear selection
+            $('#penerima').removeAttr('name'); // Remove name attribute
         } else {
             $('#pilih-kantor').show();
             $('#penerima').prop('required', true);
+            $('#penerima').attr('name', 'penerima[]'); // Add name attribute back
         }
     });
     
-    // Form validation
-    $('form').submit(function() {
-        if(!$('#kirim_semua').is(':checked') && $('#penerima').val().length == 0) {
-            alert('Silakan pilih minimal satu kantor cabang tujuan atau centang "Kirim ke Semua"');
-            return false;
-        }
-    });
+    // Check on page load
+    if($('#kirim_semua').is(':checked')) {
+        $('#pilih-kantor').hide();
+        $('#penerima').prop('required', false);
+        $('#penerima').removeAttr('name');
+    }
 });
 </script>
 @endsection

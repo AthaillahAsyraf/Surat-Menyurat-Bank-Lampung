@@ -168,6 +168,8 @@
             transform: translateY(-1px);
         }
 
+        
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .navbar-brand {
