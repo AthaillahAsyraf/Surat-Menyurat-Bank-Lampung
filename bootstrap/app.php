@@ -10,9 +10,22 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-->withMiddleware(function (Middleware $middleware) {
-    $middleware->redirectGuestsTo('/login');
-})
+    ->withMiddleware(function (Middleware $middleware) {
+        $middleware->redirectGuestsTo('/login');
+        
+        // Daftarkan middleware alias
+        $middleware->alias([
+            'password.changed' => \App\Http\Middleware\CheckPasswordChanged::class,
+        ]);
+        
+        // Atau jika ingin mendaftarkan sebagai global middleware:
+        // $middleware->append(\App\Http\Middleware\CheckPasswordChanged::class);
+        
+        // Atau sebagai middleware group:
+        // $middleware->group('web', [
+        //     \App\Http\Middleware\CheckPasswordChanged::class,
+        // ]);
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

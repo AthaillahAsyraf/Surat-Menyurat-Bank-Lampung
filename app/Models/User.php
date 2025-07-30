@@ -16,6 +16,7 @@ class User extends Authenticatable
         'email',
         'password',
         'kantor_cabang_id',
+        'password_changed',
     ];
 
     protected $hidden = [
@@ -26,6 +27,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'password_changed' => 'boolean',
     ];
 
     public function kantorCabang()

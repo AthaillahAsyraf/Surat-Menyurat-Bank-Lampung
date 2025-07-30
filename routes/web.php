@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SuratController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -13,8 +14,15 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Protected routes
+// Profile routes (hanya perlu auth, tidak perlu password.changed)
 Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+});
+
+// Protected routes dengan middleware password.changed
+Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // Surat routes
@@ -24,10 +32,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/surat', [SuratController::class, 'store'])->name('surat.store');
     Route::get('/surat/{id}', [SuratController::class, 'show'])->name('surat.show');
     Route::get('/surat/{id}/download', [SuratController::class, 'download'])->name('surat.download');
-
+    
+    // Reply routes
     Route::get('/surat/{id}/reply', [SuratController::class, 'reply'])->name('surat.reply');
     Route::post('/surat/{id}/reply', [SuratController::class, 'storeReply'])->name('surat.storeReply');
     Route::get('/surat/{id}/thread', [SuratController::class, 'showThread'])->name('surat.thread');
-
-    
 });

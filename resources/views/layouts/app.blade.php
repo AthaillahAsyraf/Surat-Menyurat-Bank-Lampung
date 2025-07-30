@@ -241,16 +241,24 @@
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle"></i> {{ auth()->user()->name }}
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-building"></i> {{ auth()->user()->kantorCabang->nama_kantor }}</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Logout</button>
-                                </form>
-                            </li>
-                        </ul>
+                       <ul class="dropdown-menu dropdown-menu-end">
+    <li><a class="dropdown-item" href="#"><i class="bi bi-building"></i> {{ auth()->user()->kantorCabang->nama_kantor }}</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li>
+        <a class="dropdown-item" href="{{ route('profile.edit') }}">
+            <i class="bi bi-person-gear"></i> Profil
+            @if(!auth()->user()->password_changed)
+                <span class="badge bg-danger ms-2">Wajib Update</span>
+            @endif
+        </a>
+    </li>
+    <li>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Logout</button>
+        </form>
+    </li>
+</ul>
                     </li>
                 </ul>
             </div>
