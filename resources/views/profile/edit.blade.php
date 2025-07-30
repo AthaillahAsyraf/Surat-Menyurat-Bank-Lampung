@@ -25,7 +25,7 @@
                         @method('PUT')
                         
                         <div class="mb-3">
-                            <label class="form-label">Kantor Cabang</label>
+                            <label class="form-label">Nama Kantor</label>
                             <input type="text" class="form-control" value="{{ auth()->user()->kantorCabang->nama_kantor }}" readonly>
                         </div>
                         
