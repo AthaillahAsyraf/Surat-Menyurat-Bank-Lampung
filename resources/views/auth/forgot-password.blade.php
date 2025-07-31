@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Sistem Surat Menyurat Bank Lampung</title>
+    <title>Lupa Password - Sistem Surat Menyurat Bank Lampung</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
@@ -16,7 +16,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
-        .login-container {
+        .forgot-container {
             background: white;
             padding: 40px;
             border-radius: 15px;
@@ -25,18 +25,18 @@
             max-width: 400px;
         }
         
-        .login-header {
+        .forgot-header {
             text-align: center;
             margin-bottom: 30px;
         }
         
-        .login-header h2 {
+        .forgot-header h2 {
             color: #004080;
             font-weight: bold;
             margin-bottom: 10px;
         }
         
-        .login-header p {
+        .forgot-header p {
             color: #666;
             font-size: 14px;
         }
@@ -52,7 +52,7 @@
             box-shadow: 0 0 0 0.2rem rgba(0,102,204,0.25);
         }
         
-        .btn-login {
+        .btn-send {
             background-color: #0066cc;
             color: white;
             padding: 12px;
@@ -63,26 +63,21 @@
             transition: all 0.3s;
         }
         
-        .btn-login:hover {
+        .btn-send:hover {
             background-color: #004080;
             transform: translateY(-1px);
         }
         
-        .forgot-password-link {
+        .back-to-login {
             color: #0066cc;
             text-decoration: none;
             font-size: 14px;
             transition: color 0.3s;
         }
         
-        .forgot-password-link:hover {
+        .back-to-login:hover {
             color: #004080;
             text-decoration: underline;
-        }
-        
-        .logo {
-            width: 80px;
-            margin-bottom: 20px;
         }
         
         .alert {
@@ -92,11 +87,11 @@
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <i class="bi bi-bank2" style="font-size: 50px; color: #004080;"></i>
-            <h2>Bank Lampung</h2>
-            <p>Sistem Surat Menyurat Antar Kantor Cabang</p>
+    <div class="forgot-container">
+        <div class="forgot-header">
+            <i class="bi bi-key" style="font-size: 50px; color: #004080;"></i>
+            <h2>Lupa Password</h2>
+            <p>Masukkan email Anda untuk menerima link reset password</p>
         </div>
         
         @if (session('status'))
@@ -105,10 +100,10 @@
             </div>
         @endif
         
-        <form method="POST" action="{{ route('login') }}">
+        <form method="POST" action="{{ route('password.email') }}">
             @csrf
             
-            <div class="mb-3">
+            <div class="mb-4">
                 <label for="email" class="form-label">Email</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-envelope"></i></span>
@@ -121,27 +116,16 @@
                 @enderror
             </div>
             
-            <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                    <input type="password" class="form-control @error('password') is-invalid @enderror" 
-                           id="password" name="password" placeholder="********" required>
-                </div>
-                @error('password')
-                    <div class="invalid-feedback d-block">{{ $message }}</div>
-                @enderror
-            </div>
-            
-            <a href="{{ route('password.request') }}" class="forgot-password-link">
-    <i class="bi bi-question-circle"></i> Lupa Password?
-</a>
-
-            
-            <button type="submit" class="btn btn-login">
-                <i class="bi bi-box-arrow-in-right"></i> Login
+            <button type="submit" class="btn btn-send">
+                <i class="bi bi-send"></i> Kirim Link Reset Password
             </button>
         </form>
+        
+        <div class="text-center mt-4">
+            <a href="{{ route('login') }}" class="back-to-login">
+                <i class="bi bi-arrow-left"></i> Kembali ke Login
+            </a>
+        </div>
         
         <div class="text-center mt-4">
             <small class="text-muted">© 2024 Bank Lampung. All rights reserved.</small>
