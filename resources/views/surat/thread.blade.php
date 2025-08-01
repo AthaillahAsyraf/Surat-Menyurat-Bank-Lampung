@@ -48,29 +48,7 @@
             </div>
             @endforeach
             
-            <!-- Form Balas di Thread -->
-            @if($surat->pengirim_id != auth()->user()->kantor_cabang_id)
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0"><i class="bi bi-reply"></i> Balas Surat</h6>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ route('surat.storeReply', $thread->first()->id) }}" enctype="multipart/form-data">
-                        @csrf
-                        <div class="mb-3">
-                            <textarea class="form-control" name="isi_surat" rows="4" 
-                                      placeholder="Tulis balasan..." required></textarea>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <input type="file" class="form-control w-50" name="file_lampiran">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-send"></i> Kirim Balasan
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            @endif
+            
         </div>
         
         <div class="col-lg-4">
