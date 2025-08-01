@@ -91,4 +91,15 @@ class Surat extends Model
         }
         return null;
     }
+
+        protected static function boot()
+    {
+        parent::boot();
+        
+        static::deleting(function ($surat) {
+            // Hapus semua relasi terkait
+            $surat->penerimas()->delete();
+            $surat->reads()->delete();
+        });
+    }
 }

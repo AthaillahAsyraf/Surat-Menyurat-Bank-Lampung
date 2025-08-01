@@ -16,7 +16,7 @@
         </div>
     </div>
     
-    <!-- Filter Section -->
+    <!-- Filter Section (sama seperti sebelumnya) -->
     <div class="collapse {{ request()->hasAny(['jenis_surat', 'sifat_surat', 'status', 'penerima_id', 'tanggal_dari', 'tanggal_sampai', 'search']) ? 'show' : '' }}" id="filterCollapse">
         <div class="card mb-4">
             <div class="card-header bg-light">
@@ -199,9 +199,15 @@
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('surat.show', $surat->id) }}" class="btn btn-sm btn-primary">
-                                    <i class="bi bi-eye"></i> Detail
-                                </a>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ route('surat.show', $surat->id) }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-eye"></i> Detail
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger" 
+                                            onclick="confirmDelete({{ $surat->id }}, '{{ $surat->nomor_surat }}')">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -225,4 +231,121 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Konfirmasi Delete -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Konfirmasi Hapus Surat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill"></i> <strong>Perhatian!</strong>
+                    <p class="mb-0 mt-2">Anda akan menghapus surat dengan nomor: <strong id="deleteNomorSurat"></strong></p>
+                    <p class="mb-0 mt-2">Tindakan ini akan:</p>
+                    <ul class="mb-0">
+                        <li>Menghapus surat dari sistem secara permanen</li>
+                        <li>Menghapus surat dari surat masuk semua penerima</li>
+                        <li>Menghapus semua balasan terkait (jika ada)</li>
+                        <li>Menghapus file lampiran (jika ada)</li>
+                    </ul>
+                    <p class="mb-0 mt-2"><strong>Tindakan ini tidak dapat dibatalkan!</strong></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash"></i> Ya, Hapus Surat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@endsection
+
+@section('scripts')
+<script>
+let suratIdToDelete = null;
+
+function confirmDelete(id, nomorSurat) {
+    suratIdToDelete = id;
+    document.getElementById('deleteNomorSurat').textContent = nomorSurat;
+    
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (suratIdToDelete) {
+        // Disable button dan show loading
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menghapus...';
+        
+        // Kirim request delete
+        fetch(`/surat/${suratIdToDelete}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Tampilkan pesan sukses
+                showAlert('success', data.message);
+                
+                // Tutup modal
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                deleteModal.hide();
+                
+                // Reload halaman setelah 1.5 detik
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                // Tampilkan pesan error
+                showAlert('danger', data.message);
+                
+                // Reset button
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-trash"></i> Ya, Hapus Surat';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'Terjadi kesalahan. Silakan coba lagi.');
+            
+            // Reset button
+            this.disabled = false;
+            this.innerHTML = '<i class="bi bi-trash"></i> Ya, Hapus Surat';
+        });
+    }
+});
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    // Insert alert at the top of the page
+    const container = document.querySelector('.container-fluid');
+    container.insertAdjacentHTML('afterbegin', alertHtml);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        const alert = container.querySelector('.alert');
+        if (alert) {
+            alert.remove();
+        }
+    }, 5000);
+}
+</script>
 @endsection

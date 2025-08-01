@@ -375,6 +375,56 @@ class SuratController extends Controller
         return view('surat.thread', compact('thread', 'surat'));
     }
 
+    public function destroy($id)
+{
+    $surat = Surat::findOrFail($id);
+    
+    // Cek apakah user adalah pengirim surat
+    if ($surat->pengirim_id != auth()->user()->kantor_cabang_id) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Anda tidak berhak menghapus surat ini.'
+        ], 403);
+    }
+    
+    DB::beginTransaction();
+    try {
+        // Hapus file lampiran jika ada
+        if ($surat->file_lampiran && Storage::disk('public')->exists($surat->file_lampiran)) {
+            Storage::disk('public')->delete($surat->file_lampiran);
+        }
+        
+        // Hapus semua balasan jika ini adalah surat parent
+        if ($surat->replies()->exists()) {
+            foreach ($surat->replies as $reply) {
+                // Hapus file lampiran balasan
+                if ($reply->file_lampiran && Storage::disk('public')->exists($reply->file_lampiran)) {
+                    Storage::disk('public')->delete($reply->file_lampiran);
+                }
+                // Hapus balasan
+                $reply->delete();
+            }
+        }
+        
+        // Hapus surat utama (akan otomatis menghapus relasi karena cascade)
+        $surat->delete();
+        
+        DB::commit();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Surat berhasil dihapus.'
+        ]);
+        
+    } catch (\Exception $e) {
+        DB::rollback();
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal menghapus surat. Silakan coba lagi.'
+        ], 500);
+    }
+}
+
     private function generateNomorSurat()
     {
         $kodeKantor = auth()->user()->kantorCabang->kode_kantor;
@@ -394,4 +444,6 @@ class SuratController extends Controller
 
         return $kodeKantor . '/' . $tahun . '/' . $bulan . '/' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
     }
+
+    
 }

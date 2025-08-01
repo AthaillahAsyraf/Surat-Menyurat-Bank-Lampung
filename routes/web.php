@@ -56,4 +56,6 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     Route::get('/surat/{id}/reply', [SuratController::class, 'reply'])->name('surat.reply');
     Route::post('/surat/{id}/reply', [SuratController::class, 'storeReply'])->name('surat.storeReply');
     Route::get('/surat/{id}/thread', [SuratController::class, 'showThread'])->name('surat.thread');
+
+    Route::delete('/surat/{id}', [SuratController::class, 'destroy'])->name('surat.destroy');
 });
