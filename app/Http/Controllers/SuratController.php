@@ -277,7 +277,21 @@ class SuratController extends Controller
             return back()->with('error', 'Tidak ada file lampiran.');
         }
 
-        return Storage::disk('public')->download($surat->file_lampiran);
+        // Ambil nama file asli dari path yang tersimpan (setelah timestamp_)
+        $originalFileName = basename($surat->file_lampiran);
+        // Hilangkan timestamp di depan (format: timestamp_namaasli.ext)
+        $originalFileNameClean = preg_replace('/^\d+_/', '', $originalFileName);
+        
+        // Ambil nama file tanpa ekstensi dan ekstensi terpisah
+        $fileInfo = pathinfo($originalFileNameClean);
+        $namaFileAsli = $fileInfo['filename'];
+        $ekstensi = $fileInfo['extension'];
+        
+        // Format nama file: NomorSurat_NamaFileAsli.ekstensi
+        $nomorSuratClean = str_replace('/', '-', $surat->nomor_surat);
+        $namaFile = $nomorSuratClean . '_' . $namaFileAsli . '.' . $ekstensi;
+
+        return Storage::disk('public')->download($surat->file_lampiran, $namaFile);
     }
 
     public function reply($id)

@@ -56,9 +56,9 @@ class ProfileController extends Controller
 
         if (!$user->password_changed) {
             return redirect()->route('dashboard')
-                ->with('success', 'Password berhasil diubah. Selamat menggunakan sistem!');
+                ->with('success', 'Profil berhasil diubah. Selamat menggunakan sistem!');
         }
 
-        return back()->with('success', 'Password berhasil diubah.');
+        return back()->with('success', 'Profil berhasil diubah. Selamat menggunakan sistem!');
     }
 }
